@@ -72,9 +72,3 @@ src/
   data/                       regions, sensor config, demo generators
   types/ utils/ styles/
 ```
-
-## Not in this prototype
-
-- Download and About are shown as "Soon" in the header.
-- The bell and avatar are presentational; there is no account or notification system.
-- Browser end-to-end tests (Playwright) are not set up; unit tests cover the data and filter logic.

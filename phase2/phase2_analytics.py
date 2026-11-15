@@ -8,7 +8,6 @@ from phase2.phase2_config import Phase2Config, load_config
 from phase2.phase2_database import connect, store
 from phase2.phase2_schema import columns_of
 
-# fire intelligence analytics for the dashboard (task 2.17), built on the monthly history (2.16):
 #   fire_calendar       year x month activity, raw and harmonized kept apart (view column)
 #   seasonal_baselines  what a normal month looks like, from complete months of other years
 #   fire_anomalies      how unusual each month is (percentile, z-score, class)
