@@ -1,13 +1,14 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { ActivityHeatmap } from '../components/activity/ActivityHeatmap';
 import { ActivityLegend } from '../components/activity/ActivityLegend';
 import { FireMap } from '../components/map/FireMap';
 import { SearchPanel } from '../components/search/SearchPanel';
-import { DemoBadge } from '../components/shared/States';
-import { EXPLORE_BOUNDS, EXPLORE_CITIES } from '../data/regions';
+import { ErrorState, LoadingState } from '../components/shared/States';
+import { REGIONS } from '../data/regions';
 import { useExploreFilters } from '../hooks/useExploreFilters';
 import { useLocationSearch } from '../hooks/useLocationSearch';
-import { getActivityMatrix, getExploreObservations } from '../services/fireData';
+import { ACTIVITY_UNIT, DEFAULT_PERIOD, EXPLORE_REGION, fetchActivityMatrix, fetchExploreObservations } from '../services/fireData';
+import { useServiceQuery } from '../hooks/useServiceQuery';
 import type { SearchMode } from '../types/fire';
 import { MONTH_SHORT, monthLabel, toMonthKey } from '../utils/dates';
 import { formatCount } from '../utils/formatters';
@@ -17,8 +18,16 @@ import styles from './ExplorePage.module.css';
 export function ExplorePage() {
   const { filters, setMode, setQuery, setLocation, togglePeriod, clearPeriod } = useExploreFilters();
   const search = useLocationSearch(setLocation);
-  const { cells, unit } = useMemo(getActivityMatrix, []);
-  const observations = useMemo(() => getExploreObservations(filters.selectedPeriod), [filters.selectedPeriod]);
+  const unit = ACTIVITY_UNIT;
+  const activity = useServiceQuery('explore-activity', fetchActivityMatrix);
+  const cells = activity.data ?? [];
+  // no month selected: show the default month so the map is never empty
+  const shown = filters.selectedPeriod ?? DEFAULT_PERIOD;
+  const shownKey = toMonthKey(shown.year, shown.month);
+  const points = useServiceQuery(`explore-${shownKey}`, (signal) => fetchExploreObservations(shown, signal));
+  const observations = points.data ?? [];
+  const loadingPoints = points.status === 'loading' || points.isUpdating;
+  const region = REGIONS.find((r) => r.id === EXPLORE_REGION)!;
 
   const changeMode = useCallback(
     (mode: SearchMode) => {
@@ -50,25 +59,29 @@ export function ExplorePage() {
       />
 
       <section className={styles.activity} aria-label="Fire activity calendar">
-        <ActivityHeatmap cells={cells} unit={unit} selected={period} onToggle={togglePeriod} />
+        {activity.status === 'error' && <ErrorState message={activity.error ?? ''} onRetry={activity.retry} />}
+        {activity.status === 'loading' && <LoadingState label="Loading fire activity…" />}
+        {activity.status === 'ready' && <ActivityHeatmap cells={cells} unit={unit} selected={period} onToggle={togglePeriod} />}
         <ActivityLegend />
       </section>
 
       <div className={styles.periodBar}>
-        <DemoBadge />
         <p aria-live="polite">
-          {period ? (
+          {points.status === 'error' ? (
+            <>Map data could not be loaded: {points.error}</>
+          ) : loadingPoints ? (
+            <>Loading <strong>{monthLabel(shownKey)}</strong> detections…</>
+          ) : period ? (
             <>
-              Showing <strong>{monthLabel(toMonthKey(period.year, period.month))}</strong>: {formatCount(observations.length)} sample
-              observations on the map.{' '}
+              Showing <strong>{monthLabel(shownKey)}</strong>: {formatCount(observations.length)} MODIS detections on the map.{' '}
               <button type="button" className={styles.linkButton} onClick={clearPeriod}>
-                Show all periods
+                Back to July 2023
               </button>
             </>
           ) : (
             <>
-              Showing <strong>all periods, 2020–2024</strong>: {formatCount(observations.length)} sample observations on the map.
-              Select a month above to filter.
+              Showing <strong>{monthLabel(shownKey)}</strong>, the record fire season: {formatCount(observations.length)} MODIS
+              detections on the map. Select a month above to see another.
             </>
           )}
         </p>
@@ -76,10 +89,10 @@ export function ExplorePage() {
 
       <FireMap
         className={styles.map}
-        label="Wildfire map of northern and central California and western Nevada"
+        label="Wildfire map of British Columbia"
         observations={observations}
-        bounds={EXPLORE_BOUNDS}
-        cities={EXPLORE_CITIES}
+        bounds={region.bounds}
+        cities={region.cities}
         focus={filters.selectedLocation}
       />
 
@@ -87,7 +100,7 @@ export function ExplorePage() {
         <summary>View activity values as a table</summary>
         <div className={shared.tableScroll}>
           <table className={shared.table}>
-            <caption className="visually-hidden">Monthly {unit}, demo data</caption>
+            <caption className="visually-hidden">Monthly {unit}</caption>
             <thead>
               <tr>
                 <th scope="col">Year</th>

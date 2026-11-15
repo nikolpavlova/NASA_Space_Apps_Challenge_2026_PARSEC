@@ -1,5 +1,4 @@
 import { Calendar, ChevronDown, Globe } from 'lucide-react';
-import { DEMO_MONTHS } from '../../data/demoModel';
 import { REGIONS } from '../../data/regions';
 import { parseMonth, toMonthKey } from '../../utils/dates';
 import shared from '../../styles/shared.module.css';
@@ -36,13 +35,11 @@ const MONTH_NAMES = [
 'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const AVAILABLE_YEARS = [...new Set(DEMO_MONTHS.map((m) => parseMonth(m).year))].sort((a, b) => b - a);
+// years downloaded from NASA FIRMS (VIIRS only exists from 2012, so 2003 and 2010 are MODIS only)
+const AVAILABLE_YEARS = [2024, 2023, 2021, 2018, 2017, 2010, 2003];
 
-function availableMonthsForYear(year: number): number[] {
-  return DEMO_MONTHS
-  .filter((m) => parseMonth(m).year === year)
-  .map((m) => parseMonth(m).month)
-  .sort((a, b) => a - b);
+function availableMonthsForYear(_year: number): number[] {
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 }
 
 export function MonthSelect({ id, value, onChange }: SelectProps) {
