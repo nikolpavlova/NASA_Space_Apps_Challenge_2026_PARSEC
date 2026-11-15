@@ -3,13 +3,14 @@ import { NavLink } from 'react-router-dom';
 import styles from './AppHeader.module.css';
 
 const ROUTES = [
+  { to: '/about', label: 'About' },
   { to: '/', label: 'Explore' },
   { to: '/analytics', label: 'Analytics' },
   { to: '/compare', label: 'Compare' },
 ];
 
 /** Destinations named in the designs that are not part of this prototype yet. */
-const UNAVAILABLE = ['Download', 'About'];
+const UNAVAILABLE = ['Download'];
 
 export function AppHeader() {
   return (
